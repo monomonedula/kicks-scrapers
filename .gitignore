@@ -1,0 +1,10 @@
+.idea/
+testnotebook.ipynb
+venv/
+__pycache__/
+test.ipynb
+logs/
+*.log.+([0-9])
+*.log
+**/*/.log.+([0-9])
+**/*/.log
