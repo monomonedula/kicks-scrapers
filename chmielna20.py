@@ -1,15 +1,14 @@
-import re
 import logging
 from string import punctuation
 
-from bs4 import Tag
+from fluent import asynchandler, handler
 
 import Parsing
+from dbhandling import parserdb
 from itemgetter import ItemGetter
-from webutils import CachedTranslator
 from webutils.pageloader import SoupLoader
-from basic_utils import (contains_color, text_lower, text_spaces_del, convert,
-                         identify_brand, format_size_number)
+from basic_utils import (text_lower, text_spaces_del, convert,
+                         format_size_number)
 
 
 baselinks = [
@@ -17,11 +16,12 @@ baselinks = [
     'https://chmielna20.pl/products/obuwie-kobieta-36eu/category,2/gender,W/size,{}/sizetype,EU/sort,1/page,{}',
 ]
 
-translator = CachedTranslator()
 
 logger = logging.getLogger(__name__)
 
 punctuation_cleaner = str.maketrans(punctuation, ' ' * len(punctuation))
+
+scraper_name = 'chmielna20'
 
 
 def chmielna20_parse(output=Parsing.database_size_layer_writer):
@@ -55,22 +55,11 @@ class ChmielnaIg(ItemGetter):
         link = offer.find("a")
         item['link'] = link.attrs['href']
 
-    # def get_colorway(self, item, request):
-    #     item['colorway'] = get_colorway(self.soup_loader, item['link'])
-
     @staticmethod
     def get_name(item, request):
         offer = request['offer']
         # item['name'] = get_name(offer) + ' ' + item['colorway']
         item['name'] = get_name(offer)
-
-    @staticmethod
-    def get_brand(item, request):
-        item['brand'] = get_brand(request['offer'])
-
-    # @staticmethod
-    # def get_model(item, request):
-    #     item['model'] = get_model(request['offer'], item['brand'])
 
     @staticmethod
     def get_price(item, request):
@@ -127,24 +116,6 @@ def get_name(offer):
 
 @text_lower
 @text_spaces_del
-def get_brand(offer):
-    brand = identify_brand(get_name(offer))
-    return brand if brand else ''
-
-
-@text_lower
-@text_spaces_del
-def get_colorway(soup_loader, link):
-    soup = soup_loader(link)
-    colorway = _find_colorway(soup)
-    if colorway:
-        return colorway  # to remove "-" from the beginning of the string
-    else:
-        return ''
-
-
-@text_lower
-@text_spaces_del
 def get_item_id(offer):
     name = get_name(offer)
     try:
@@ -177,78 +148,23 @@ def get_price(offer):
     return convert("PLN", "USD", price)
 
 
-# @text_lower
-# @text_spaces_del
-# def get_model(offer, brand):
-#     name = get_name(offer)
-#     if brand in name:
-#         name = name.replace(brand, '')
-#     else:
-#         brand_substring = get_brand_substring(name=name, brand=brand)
-#         if brand_substring:
-#             _, name = name.split(get_brand_substring(name=name, brand=brand), maxsplit=1)
-#         else:
-#             logger.warning('Unable to recognize brand in name "{}"'.format(name))
-#             return ''
-#
-#     if '(' in name:
-#         name, _ = name.split('(')
-#
-#     if '"' in name:
-#         name, _ = name.split('"', maxsplit=1)
-#
-#     return name
-
-
-def _find_colorway(soup):
-    colorway = soup.find('div', class_='col-md-12 product__description active')
-    if not colorway.children:
-        return None
-
-    children = [str(c.text) for c in colorway.children if type(c) is Tag and re.search('\w', c.text)]
-    if len(children) < 2:
-        return None
-    else:
-        return _most_suitable(children)
-
-
-def _most_suitable(strings):
-    best_st, best_weight = max(((string, _colorway_check(string)) for string in strings), key=lambda sv: sv[1])
-    if best_weight < 0.5:
-        return None
-    else:
-        best_st = re.sub('^\s*-', '', best_st)
-        if '/' in best_st:
-            best_st = best_st.split('/')
-            best_st = (translator.translate(s, src='pl').text for s in best_st)
-            best_st = '/'.join(best_st)
-            return best_st
-        else:
-            return translator.translate(best_st, src='pl').text
-
-
-def _colorway_check(line):
-    res = 0.0
-    if len(line) > 40:
-        return res
-    elif re.search('Lato \d\d\d\d|Jesień \d\d\d\d|Zima \d\d\d\d|Wiosna \d\d\d\d', line, re.IGNORECASE):
-        return res
-
-    res += 0.25 * line.count('/')
-    line = ' '.join((s for s in line.split() if len(s) > 2))
-    res += contains_color(translator.translate(line, src='pl').text)
-    return res
-
-
 if __name__ == '__main__':
-    logging.basicConfig(format='[time: %(asctime)s] - %(name)s - %(funcName)s - %(levelname)s - %(message)s',
-                        level=logging.DEBUG,
-                        filename='/home/vladislav/kicksproject/logs/test.log',
-                        filemode='w')
+    log_format = {
+        'where': '%(module)s.%(funcName)s',
+        'type': '%(levelname)s',
+        'stack_trace': '%(exc_text)s',
+    }
 
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-    console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
-    chmielna20_parse()
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('')
+    logger.setLevel(level=logging.INFO)
+    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h.setLevel(level=logging.INFO)
+    formatter = handler.FluentRecordFormatter(log_format)
+    h.setFormatter(formatter)
+    logging.getLogger('').addHandler(h)
+    if parserdb.is_finished(scraper_name):
+        chmielna20_parse()
+    else:
+        logger.error('Scraping job cannot be started because'
+                     ' job with the same name %r is not finished. ' % scraper_name)

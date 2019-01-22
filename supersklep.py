@@ -21,29 +21,6 @@ baselinks = [
 scraper_name = 'supersklep'
 
 
-def main():
-    log_format = {
-        'where': '%(module)s.%(funcName)s',
-        'type': '%(levelname)s',
-        'stack_trace': '%(exc_text)s',
-    }
-
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('')
-    logger.setLevel(level=logging.INFO)
-    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
-    h.setLevel(level=logging.INFO)
-    formatter = handler.FluentRecordFormatter(log_format)
-    h.setFormatter(formatter)
-    logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        supersklep_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
-
-
 def supersklep_parse(output=Parsing.database_writer):
     soup_loader = SoupLoader()
     ig = SupersklepIg(soup_loader)
@@ -172,3 +149,26 @@ def get_id(offer, soup_loader):
         return code
     else:
         return ''
+
+
+if __name__ == '__main__':
+    log_format = {
+        'where': '%(module)s.%(funcName)s',
+        'type': '%(levelname)s',
+        'stack_trace': '%(exc_text)s',
+    }
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('')
+    logger.setLevel(level=logging.INFO)
+    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h.setLevel(level=logging.INFO)
+    formatter = handler.FluentRecordFormatter(log_format)
+    h.setFormatter(formatter)
+    logging.getLogger('').addHandler(h)
+
+    if parserdb.is_finished(scraper_name):
+        supersklep_parse()
+    else:
+        logger.error('Scraping job cannot be started because'
+                     ' job with the same name %r is not finished. ' % scraper_name)

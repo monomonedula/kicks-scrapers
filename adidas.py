@@ -21,29 +21,6 @@ adidas_baselinks = [
 scraper_name = 'adidas'
 
 
-def main():
-    log_format = {
-        'where': '%(module)s.%(funcName)s',
-        'type': '%(levelname)s',
-        'stack_trace': '%(exc_text)s',
-    }
-
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('')
-    logger.setLevel(level=logging.INFO)
-    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
-    h.setLevel(level=logging.INFO)
-    formatter = handler.FluentRecordFormatter(log_format)
-    h.setFormatter(formatter)
-    logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        adidas_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
-
-
 def adidas_parse(*, output=Parsing.database_writer, ipp=24):
     if ipp not in (120, 24):
         raise ValueError('Unknown items per page value: {}'.format(ipp))
@@ -185,3 +162,26 @@ def get_maxpage_func(lxml_soup_loader, ipp=24):
         tag = soup.cssselect('.count___11uU6')[0]
         return 1 + int(re.sub('\D', '', tag.text)) // ipp
     return maxpage
+
+
+if __name__ == '__main__':
+    log_format = {
+        'where': '%(module)s.%(funcName)s',
+        'type': '%(levelname)s',
+        'stack_trace': '%(exc_text)s',
+    }
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('')
+    logger.setLevel(level=logging.INFO)
+    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h.setLevel(level=logging.INFO)
+    formatter = handler.FluentRecordFormatter(log_format)
+    h.setFormatter(formatter)
+    logging.getLogger('').addHandler(h)
+
+    if parserdb.is_finished(scraper_name):
+        adidas_parse()
+    else:
+        logger.error('Scraping job cannot be started because'
+                     ' job with the same name %r is not finished. ' % scraper_name)

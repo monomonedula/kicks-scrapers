@@ -94,18 +94,22 @@ def gendata(batch, index_name):
                 'update',
             'script': {
                 'lang': 'painless',
-                'source': "ctx._source.new_sizes = [];"
+                'source': ""
                           ""
-                          "for(int i = 0; i < params.sizes.length; i++){"
-                          "    if (!ctx._source.sizes.contains(params.sizes[i])){"
-                          "         ctx._source.new_sizes.add(params.sizes[i]);"
-                          "     }"
-                          "}"
-                          "ctx._source.sizes = params.sizes;"
                           "if((params.new_update_time - 3600) > ctx._source.last_update){"
                           "     ctx._source.price_change = params.price - ctx._source.price;"
+                          "     ctx._source.new_sizes = [];"
+                          "     for(int i = 0; i < params.sizes.length; i++){"
+                          "         if (!ctx._source.sizes.contains(params.sizes[i])){"
+                          "         ctx._source.new_sizes.add(params.sizes[i]);"
+                          "         }"
+                          "     }"
+                          
+                          "} else {"
+                          ""
                           "}"
-                          "ctx._source.price = params.price;"
+                          "ctx._source.sizes = params.sizes; "
+                          "ctx._source.price = params.price; "
                           "ctx._source.last_update = params.new_update_time;"
                           "ctx._source.img_link = params.img_link;",
                 'params': {

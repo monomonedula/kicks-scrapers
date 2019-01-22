@@ -23,29 +23,6 @@ baselinks = [
 scraper_name = 'distance'
 
 
-def main():
-    log_format = {
-        'where': '%(module)s.%(funcName)s',
-        'type': '%(levelname)s',
-        'stack_trace': '%(exc_text)s',
-    }
-
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('')
-    logger.setLevel(level=logging.INFO)
-    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
-    h.setLevel(level=logging.INFO)
-    formatter = handler.FluentRecordFormatter(log_format)
-    h.setFormatter(formatter)
-    logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        distance_scrape()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
-
-
 def distance_scrape(output=Parsing.database_writer):
     soup_loader = LxmlSoupLoader()
     ig = DistanceIg(soup_loader)
@@ -111,14 +88,9 @@ def get_price(offer):
     return convert(frm='PLN', to='USD', amount=float(price))
 
 
-def get_sizes(offer, brand=None):
+def get_sizes(offer):
     sizes = offer.find_class('pList__item__sizes')[0].getchildren()
     sizes = (s.text for s in sizes)
-    # formated_sizes = []
-    # for size in sizes:
-    #     for sz in size_to_db_format('eu', size, brand) or ['eu' + format_size_number(size)]:
-    #         formated_sizes.append(sz)
-    # return formated_sizes
     return ['eu' + format_size_number(size) for size in sizes]
 
 
@@ -136,3 +108,26 @@ def get_maxpage(soup_loader):
                                 ' div.productsWrapper > div.pagination >'
                                 ' div > a.last')[0].text)
     return maxpage
+
+
+if __name__ == '__main__':
+    log_format = {
+        'where': '%(module)s.%(funcName)s',
+        'type': '%(levelname)s',
+        'stack_trace': '%(exc_text)s',
+    }
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('')
+    logger.setLevel(level=logging.INFO)
+    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h.setLevel(level=logging.INFO)
+    formatter = handler.FluentRecordFormatter(log_format)
+    h.setFormatter(formatter)
+    logging.getLogger('').addHandler(h)
+
+    if parserdb.is_finished(scraper_name):
+        distance_scrape()
+    else:
+        logger.error('Scraping job cannot be started because'
+                     ' job with the same name %r is not finished. ' % scraper_name)

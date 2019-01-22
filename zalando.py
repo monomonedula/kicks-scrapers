@@ -29,29 +29,6 @@ baselinks = [
 scraper_name = 'zalando'
 
 
-def main():
-    log_format = {
-        'where': '%(module)s.%(funcName)s',
-        'type': '%(levelname)s',
-        'stack_trace': '%(exc_text)s',
-    }
-
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('')
-    logger.setLevel(level=logging.INFO)
-    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
-    h.setLevel(level=logging.INFO)
-    formatter = handler.FluentRecordFormatter(log_format)
-    h.setFormatter(formatter)
-    logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        zalando_scrape()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
-
-
 def zalando_scrape(output=Parsing.database_writer):
     soup_loader = LxmlSoupLoader(use_proxies=False)
     ig = ZalandoIg(soup_loader)
@@ -152,3 +129,26 @@ def get_maxpage(soup_loader):
         data = json.loads(json_text)
         return data['pagination']['page_count']
     return maxpage
+
+
+if __name__ == '__main__':
+    log_format = {
+        'where': '%(module)s.%(funcName)s',
+        'type': '%(levelname)s',
+        'stack_trace': '%(exc_text)s',
+    }
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('')
+    logger.setLevel(level=logging.INFO)
+    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h.setLevel(level=logging.INFO)
+    formatter = handler.FluentRecordFormatter(log_format)
+    h.setFormatter(formatter)
+    logging.getLogger('').addHandler(h)
+
+    if parserdb.is_finished(scraper_name):
+        zalando_scrape()
+    else:
+        logger.error('Scraping job cannot be started because'
+                     ' job with the same name %r is not finished. ' % scraper_name)

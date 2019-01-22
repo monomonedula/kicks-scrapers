@@ -20,29 +20,6 @@ baselinks = [
 scraper_name = 'sizeer'
 
 
-def main():
-    log_format = {
-        'where': '%(module)s.%(funcName)s',
-        'type': '%(levelname)s',
-        'stack_trace': '%(exc_text)s',
-    }
-
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('')
-    logger.setLevel(level=logging.INFO)
-    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
-    h.setLevel(level=logging.INFO)
-    formatter = handler.FluentRecordFormatter(log_format)
-    h.setFormatter(formatter)
-    logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        sizeer_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
-
-
 def sizeer_parse(output=Parsing.database_writer):
     soup_loader = SoupLoader()
     ig = SizeerIg(soup_loader)
@@ -92,7 +69,7 @@ class SizeerIg(ItemGetter):
 
     @staticmethod
     def get_sizes(item, request):
-        item['sizes'] = get_sizes(request['offer'], brand=item.get('brand'))
+        item['sizes'] = get_sizes(request['offer'])
 
 
 def get_offers_list(soup):
@@ -142,7 +119,7 @@ def get_prices(offer):
     return convert("PLN", "USD", price)
 
 
-def get_sizes(offer, brand=None):
+def get_sizes(offer):
     div = offer.find(attrs={"class": "m-productsBox_variantSizes js-variant_size is-active"})
     try:
         spans = div.findAll("span")
@@ -153,3 +130,25 @@ def get_sizes(offer, brand=None):
     for val in (span.text for span in spans):
         sizes.append('eu' + format_size_number(val))
     return sizes
+
+
+if __name__ == '__main__':
+    log_format = {
+        'where': '%(module)s.%(funcName)s',
+        'type': '%(levelname)s',
+        'stack_trace': '%(exc_text)s',
+    }
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('')
+    logger.setLevel(level=logging.INFO)
+    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h.setLevel(level=logging.INFO)
+    formatter = handler.FluentRecordFormatter(log_format)
+    h.setFormatter(formatter)
+    logging.getLogger('').addHandler(h)
+    if parserdb.is_finished(scraper_name):
+        sizeer_parse()
+    else:
+        logger.error('Scraping job cannot be started because'
+                     ' job with the same name %r is not finished. ' % scraper_name)

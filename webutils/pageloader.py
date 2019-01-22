@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from lxml.html.soupparser import fromstring
 import requests
 
-from kicksbot.Parsing.webutils.get_proxies import ProxiesList
+from webutils.get_proxies import ProxiesList
 
 
 logger = logging.getLogger(__name__)

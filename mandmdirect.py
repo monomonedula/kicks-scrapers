@@ -9,7 +9,6 @@ from dbhandling import parserdb
 from webutils.pageloader import SoupLoader
 from basic_utils import (format_size_number,
                          convert, text_spaces_del, text_lower)
-from basic_utils.text_handling import identify_brand
 from itemgetter import ItemGetter
 
 
@@ -22,29 +21,6 @@ baselinks = [
 ]
 
 scraper_name = 'mandamdirect'
-
-
-def main():
-    log_format = {
-        'where': '%(module)s.%(funcName)s',
-        'type': '%(levelname)s',
-        'stack_trace': '%(exc_text)s',
-    }
-
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('')
-    logger.setLevel(level=logging.INFO)
-    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
-    h.setLevel(level=logging.INFO)
-    formatter = handler.FluentRecordFormatter(log_format)
-    h.setFormatter(formatter)
-    logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        mandmdirect_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
 
 
 def mandmdirect_parse(output=Parsing.database_writer):
@@ -111,15 +87,6 @@ def get_name(item_page):
     return item_page.find('title').text.replace('Buy', '')
 
 
-@text_lower
-@text_spaces_del
-def get_brand(item_page):
-    div = item_page.find('div', class_=re.compile('brandOnly'))
-    a = div.find('a')
-    brand = identify_brand(a.text)
-    return brand if brand else ''
-
-
 def get_link(offer):
     a = offer.find("a", {"id": False})
     return "https://www.mandmdirect.com" + a.attrs["href"]
@@ -150,3 +117,26 @@ def get_prices(offer):
     price = price.replace('zł', '')
     price = float(price)
     return convert("PLN", "USD", price)
+
+
+if __name__ == '__main__':
+    log_format = {
+        'where': '%(module)s.%(funcName)s',
+        'type': '%(levelname)s',
+        'stack_trace': '%(exc_text)s',
+    }
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('')
+    logger.setLevel(level=logging.INFO)
+    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h.setLevel(level=logging.INFO)
+    formatter = handler.FluentRecordFormatter(log_format)
+    h.setFormatter(formatter)
+    logging.getLogger('').addHandler(h)
+
+    if parserdb.is_finished(scraper_name):
+        mandmdirect_parse()
+    else:
+        logger.error('Scraping job cannot be started because'
+                     ' job with the same name %r is not finished. ' % scraper_name)
