@@ -39,10 +39,11 @@ class SoupLoader:
 
     def loadpage(self, link):
         error_counter = 0
+        logger.warning('test')
         if self.use_proxies:
             while True:
                 try:
-                    logger.info('new proxy list: %s' % self.proxies)
+                    logger.info('new proxy: %s' % self.proxies)
                     res = self.session.get(link, headers=self.headers,
                                            proxies=self.proxies,
                                            timeout=20)
@@ -62,11 +63,13 @@ class SoupLoader:
                 except timeout:
                     logger.warning('Socket timeout. Trying another proxy ...')
                 else:
+                    logger.debug('Returning result')
                     return res
 
                 logger.info('Trying new proxy...')
                 self.proxies = self.proxies_list.pop()
         else:
+            logger.info('Trying session')
             return self.session.get(link, headers=self.headers)
 
 

@@ -20,11 +20,11 @@ baselinks = [
     "https://www.mandmdirect.pl/01/damskie/obuwie/{position}",
 ]
 
-scraper_name = 'mandamdirect'
+scraper_name = 'mandmdirect'
 
 
 def mandmdirect_parse(output=Parsing.database_writer):
-    soup_loader = SoupLoader()
+    soup_loader = SoupLoader(bot=False, use_proxies=True)
     ig = MandmdirectIg(soup_loader)
     links = Parsing.links(baselinks, get_maxpage_func(soup_loader))
     parser = Parsing.BaseParser(get_offers_list=get_offers_list, get_item_dict=ig,
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger('')
     logger.setLevel(level=logging.INFO)
-    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h = asynchandler.FluentHandler('kicks.scraper.%s' % scraper_name, host='localhost', port=24224)
     h.setLevel(level=logging.INFO)
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)

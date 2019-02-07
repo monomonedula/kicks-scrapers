@@ -32,7 +32,7 @@ def chmielna20_parse(output=Parsing.database_size_layer_writer):
                                 soup_loader=soup_loader)
     link_gen = links(baselinks, soup_loader=soup_loader)
     item_gen = parser(link_gen)
-    return output(item_gen, scraper_name="chmielna20")
+    return output(item_gen, scraper_name=scraper_name)
 
 
 class ChmielnaIg(ItemGetter):
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger('')
     logger.setLevel(level=logging.INFO)
-    h = asynchandler.FluentHandler('kicks.scraper', host='localhost', port=24224)
+    h = asynchandler.FluentHandler('kicks.scraper.%s' % scraper_name, host='localhost', port=24224)
     h.setLevel(level=logging.INFO)
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)

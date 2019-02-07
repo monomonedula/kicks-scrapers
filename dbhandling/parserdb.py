@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 main_index_name = 'kicks'
 
+this_directory_path = os.path.dirname(os.path.abspath(__file__))
+
+with open(os.path.join(this_directory_path, 'update_script.painless')) as scr:
+    update_script = scr.read()
+
 
 def write_tmp(items, index, id_field='link'):
     def bulk_gen():
@@ -94,24 +99,7 @@ def gendata(batch, index_name):
                 'update',
             'script': {
                 'lang': 'painless',
-                'source': ""
-                          ""
-                          "if((params.new_update_time - 3600) > ctx._source.last_update){"
-                          "     ctx._source.price_change = params.price - ctx._source.price;"
-                          "     ctx._source.new_sizes = [];"
-                          "     for(int i = 0; i < params.sizes.length; i++){"
-                          "         if (!ctx._source.sizes.contains(params.sizes[i])){"
-                          "         ctx._source.new_sizes.add(params.sizes[i]);"
-                          "         }"
-                          "     }"
-                          
-                          "} else {"
-                          ""
-                          "}"
-                          "ctx._source.sizes = params.sizes; "
-                          "ctx._source.price = params.price; "
-                          "ctx._source.last_update = params.new_update_time;"
-                          "ctx._source.img_link = params.img_link;",
+                'source': update_script,
                 'params': {
                     'sizes': hit['_source']['sizes'],
                     'price': hit['_source']['price'],
@@ -119,8 +107,11 @@ def gendata(batch, index_name):
                     'img_link': hit['_source']['img_link'],
                 }
             },
-            'upsert':
-                hit['_source'],
+            'upsert':{
+                    'new':
+                        True,
+                    **hit['_source'],
+            },
         }
 
 

@@ -7,6 +7,10 @@ from dbhandling import parserdb
 logger = logging.getLogger(__name__)
 
 
+class TooManyErrors(Exception):
+    pass
+
+
 class BaseParser:
     def __init__(self, *, get_offers_list, get_item_dict,
                  driver_wrapper=None, soup_loader=None,
@@ -18,6 +22,8 @@ class BaseParser:
         self.soup_loader = soup_loader or driver_wrapper.load_soup
         if not self.driver_wrapper and not self.soup_loader:
             raise ValueError('Neither driver_wrapper nor soup_loader are given')
+        self.exceptions_counter = 0
+        self.items_gathered = 0
 
     def __call__(self, links, maxpage=None):
         for i, data in enumerate(links):
@@ -30,19 +36,27 @@ class BaseParser:
             bs_obj = self.soup_loader(link)
             logger.info('Parsing page {} ...'.format(link))
             for item in self._parse_page(bs_obj, page_data=data):
+                print(item)
                 yield item
             gc.collect()
 
     def _parse_page(self, bs_obj, page_data):
         for offer in self.get_offers_list(bs_obj):
+            self.items_gathered += 1
             try:
                 request = {'offer': offer, **page_data}
                 item = self.get_item_dict(request=request)
             except Exception:
                 logger.exception(page_data)
+                self.exceptions_counter += 1
+                if self.too_many_errors():
+                    raise TooManyErrors
             else:
                 if item:
                     yield item
+
+    def too_many_errors(self):
+        return self.items_gathered / self.exceptions_counter > 0.5 and self.items_gathered > 100
 
 
 def database_writer(item_generator, scraper_name, item_id_field='link', buffer_size=200):
@@ -67,6 +81,7 @@ def database_writer(item_generator, scraper_name, item_id_field='link', buffer_s
             parserdb.write_docs_batch_to_index(batch=list(buffer.values()),
                                                id_field=item_id_field)
     except Exception as e:
+        logger.critical({'message': 'Error occured.'})
         parserdb.critical_session_exit(session_id)
         raise e
     logger.info('Closing scraping session %s. Total items obtained: %s' % (session_id, total))
@@ -114,9 +129,9 @@ def database_size_layer_writer(item_generator, scraper_name, max_buffer_size=200
         logger.info('Closing scraping session %s. Total items obtained: %s' % (session_id, total))
         parserdb.scrape_session_mark_closed(session_id)
     except Exception as e:
-        logger.critical('Error occured. Dropping index %s' % tmp_session_index)
-        parserdb.critical_session_exit(session_id)
+        logger.critical({'message': 'Error occured. Dropping index %s' % tmp_session_index})
         parserdb.drop_index(tmp_session_index)
+        parserdb.critical_session_exit(session_id)
         raise e
 
 

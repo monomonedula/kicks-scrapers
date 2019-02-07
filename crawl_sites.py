@@ -6,7 +6,7 @@ from fluent import asynchandler, handler
 from Parsing import *
 
 parsers = {
-    'adidas': adidas_parse,
+    'adidas': adidas_s,
     'reebok': reebok_parse,
     'chmielna20': chmielna20_parse,
     'supersklep': supersklep_parse,
