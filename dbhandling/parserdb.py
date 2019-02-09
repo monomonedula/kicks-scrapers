@@ -122,6 +122,7 @@ def new_tmp_scrape_session(scraper_name):
         'session_id': ssid.hex,
         'start_time': datetime.utcnow(),
         'open': True,
+        'pid': os.getpid(),
         'last_activity': datetime.utcnow(),
         'scraper': scraper_name,
         'tmp_es_index_name': es_tmp_index,
