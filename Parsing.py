@@ -36,7 +36,6 @@ class BaseParser:
             bs_obj = self.soup_loader(link)
             logger.info('Parsing page {} ...'.format(link))
             for item in self._parse_page(bs_obj, page_data=data):
-                print(item)
                 yield item
             gc.collect()
 
@@ -50,13 +49,14 @@ class BaseParser:
                 logger.exception(page_data)
                 self.exceptions_counter += 1
                 if self.too_many_errors():
-                    raise TooManyErrors
+                    raise TooManyErrors("items total: %s , exceptions: %s" % (self.items_gathered,
+                                                                              self.exceptions_counter))
             else:
                 if item:
                     yield item
 
     def too_many_errors(self):
-        return self.items_gathered / self.exceptions_counter > 0.5 and self.items_gathered > 100
+        return self.exceptions_counter / self.items_gathered > 0.5 and self.items_gathered > 100
 
 
 def database_writer(item_generator, scraper_name, item_id_field='link', buffer_size=200):
@@ -80,10 +80,10 @@ def database_writer(item_generator, scraper_name, item_id_field='link', buffer_s
             logger.info('Writing last batch to elasticsearch. session id: %s' % session_id)
             parserdb.write_docs_batch_to_index(batch=list(buffer.values()),
                                                id_field=item_id_field)
-    except Exception as e:
+    except (Exception, KeyboardInterrupt):
         logger.critical({'message': 'Error occured.'})
         parserdb.critical_session_exit(session_id)
-        raise e
+        raise
     logger.info('Closing scraping session %s. Total items obtained: %s' % (session_id, total))
     parserdb.scrape_session_mark_closed(session_id)
 
@@ -128,11 +128,11 @@ def database_size_layer_writer(item_generator, scraper_name, max_buffer_size=200
         parserdb.drop_index(tmp_session_index)
         logger.info('Closing scraping session %s. Total items obtained: %s' % (session_id, total))
         parserdb.scrape_session_mark_closed(session_id)
-    except Exception as e:
+    except (Exception, KeyboardInterrupt):
         logger.critical({'message': 'Error occured. Dropping index %s' % tmp_session_index})
         parserdb.drop_index(tmp_session_index)
         parserdb.critical_session_exit(session_id)
-        raise e
+        raise
 
 
 def sl_link_gen(*, baselinks, sizes_list, get_pg_lim, ipp=None):
