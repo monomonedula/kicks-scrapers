@@ -92,6 +92,8 @@ class SneakerItemURLid(SneakerItem):
 
 
 class SneakerItemSL(SneakerItemURLid):
+    sl = Boolean(default=True)
+
     def get_bulk_tmp_update_dict(self):
         d = self.to_dict(include_meta=True)
         d['_op_type'] = 'update'
