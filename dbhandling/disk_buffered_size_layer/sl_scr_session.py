@@ -3,7 +3,7 @@ import mongoengine
 from dbhandling.scr_session import ScrapingSession
 
 
-class SizeLayerScrapingSession(ScrapingSession):
+class SLDiskBufferScrapingSession(ScrapingSession):
     tmp_index_name = mongoengine.StringField(max_length=120)
 
     def __init__(self, *args, **values):

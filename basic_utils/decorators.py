@@ -1,5 +1,4 @@
 from functools import wraps
-from threading import Thread
 
 
 def text_lower(func):
@@ -42,12 +41,4 @@ def size_value_format_check(func):
             raise ValueError('Wrong size value format: "{}"'.format(s))
         return res
 
-    return decor
-
-
-def non_blocking(func):
-    @wraps(func)
-    def decor(*args, **kwargs):
-        t = Thread(target=func, args=args, kwargs=kwargs)
-        t.start()
     return decor

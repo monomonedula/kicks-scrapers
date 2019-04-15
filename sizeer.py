@@ -2,12 +2,12 @@ import logging
 
 from fluent import asynchandler, handler
 
-import Parsing
-from dbhandling import parserdb
+import Scraping
+from dbhandling.indexing import SessionedWriter
 from webutils.pageloader import SoupLoader
 from basic_utils import (only_digits, format_size_number, convert,
                          text_spaces_del, text_lower)
-from itemgetter import ItemGetter
+from itemgetter import LinkIdentifiedItemGetter as ItemGetter
 
 
 logger = logging.getLogger(__name__)
@@ -20,56 +20,55 @@ baselinks = [
 scraper_name = 'sizeer'
 
 
-def sizeer_parse(output=Parsing.database_writer):
-    soup_loader = SoupLoader()
+def sizeer_parse():
+    soup_loader = SoupLoader(use_proxies=False)
     ig = SizeerIg(soup_loader)
-    parser = Parsing.BaseParser(get_offers_list=get_offers_list, get_item_dict=ig,
-                                soup_loader=soup_loader)
+    parser = Scraping.BaseScraper(get_offers_list=get_offers_list, get_item_dict=ig,
+                                  soup_loader=soup_loader)
 
-    link_generator = Parsing.links(baselinks, maxpage=get_maxpage(soup_loader))
+    link_generator = Scraping.links(baselinks, maxpage=get_maxpage(soup_loader))
     item_generator = parser(link_generator)
-    output(item_generator, scraper_name)
+    return item_generator
 
 
 class SizeerIg(ItemGetter):
     fields = [
-        'get_link',
+        'get_url',
         'get_brand',
-        'get_img_link',
+        'get_img_url',
         'get_name',
         'get_id',
         'get_price',
         'get_sizes',
-        'get_utc'
     ]
 
     @staticmethod
-    def get_link(item, request):
-        item['link'] = get_link(request['offer'])
+    def get_url(item, request):
+        item.url = get_link(request['offer'])
 
     @staticmethod
     def get_brand(item, request):
-        item['brand'] = get_brand(request['offer'])
+        item.brand = get_brand(request['offer'])
 
     @staticmethod
-    def get_img_link(item, request):
-        item['img_link'] = get_img_link(request['offer'])
+    def get_img_url(item, request):
+        item.img_url = get_img_link(request['offer'])
 
     @staticmethod
     def get_name(item, request):
-        item['name'] = get_name(request['offer'])
+        item.name = get_name(request['offer'])
 
     @staticmethod
     def get_id(item, request):
-        item['item_id'] = get_id(request['offer'])
+        item.item_id = get_id(request['offer'])
 
     @staticmethod
     def get_price(item, request):
-        item['price'] = get_prices(request['offer'])
+        item.price = get_prices(request['offer'])
 
     @staticmethod
     def get_sizes(item, request):
-        item['sizes'] = get_sizes(request['offer'])
+        item.sizes = get_sizes(request['offer'])
 
 
 def get_offers_list(soup):
@@ -139,16 +138,14 @@ if __name__ == '__main__':
         'stack_trace': '%(exc_text)s',
     }
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger('')
-    logger.setLevel(level=logging.INFO)
+    logger.setLevel(level=logging.DEBUG)
     h = asynchandler.FluentHandler('kicks.scraper.%s' % scraper_name, host='localhost', port=24224)
-    h.setLevel(level=logging.INFO)
+    h.setLevel(level=logging.DEBUG)
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)
     logging.getLogger('').addHandler(h)
-    if parserdb.is_finished(scraper_name):
-        sizeer_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
+    items = sizeer_parse()
+    writer = SessionedWriter(scraper_name, items)
+    writer.write_items()

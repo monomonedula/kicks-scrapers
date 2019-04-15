@@ -3,19 +3,17 @@ from string import punctuation
 
 from fluent import asynchandler, handler
 
-import Parsing
-from dbhandling import parserdb
-from itemgetter import ItemGetter
+from dbhandling.indexing import SessionedSizeLayerWriter
+import Scraping
+from itemgetter import LinkIdentifiedItemGetter
 from webutils.pageloader import SoupLoader
 from basic_utils import (text_lower, text_spaces_del, convert,
                          format_size_number)
-
 
 baselinks = [
     'https://chmielna20.pl/products/obuwie-mezczyzna-34eu/category,2/gender,M/size,{}/sizetype,EU/sort,1/page,{}',
     'https://chmielna20.pl/products/obuwie-kobieta-36eu/category,2/gender,W/size,{}/sizetype,EU/sort,1/page,{}',
 ]
-
 
 logger = logging.getLogger(__name__)
 
@@ -24,20 +22,21 @@ punctuation_cleaner = str.maketrans(punctuation, ' ' * len(punctuation))
 scraper_name = 'chmielna20'
 
 
-def chmielna20_parse(output=Parsing.database_size_layer_writer):
-    soup_loader = SoupLoader(bot=True)
+def chmielna20_parse():
+    soup_loader = SoupLoader(bot=True, use_proxies=False)
     cg = ChmielnaIg(soup_loader)
-    parser = Parsing.BaseParser(get_offers_list=get_offers_list,
-                                get_item_dict=cg,
-                                soup_loader=soup_loader)
+    parser = Scraping.BaseScraper(get_offers_list=get_offers_list,
+                                  get_item_dict=cg,
+                                  soup_loader=soup_loader)
     link_gen = links(baselinks, soup_loader=soup_loader)
     item_gen = parser(link_gen)
-    return output(item_gen, scraper_name=scraper_name)
+    writer = SessionedSizeLayerWriter(scraper_name, item_gen)
+    return writer.write_items()
 
 
-class ChmielnaIg(ItemGetter):
+class ChmielnaIg(LinkIdentifiedItemGetter):
     fields = [
-        'get_link',
+        'get_url',
         # 'get_colorway',
         # 'get_brand',
         'get_name',
@@ -45,15 +44,14 @@ class ChmielnaIg(ItemGetter):
         'get_price',
         'get_sizes',
         'get_item_id',
-        'get_img_link',
-        'get_utc',
+        'get_img_url',
     ]
 
     @staticmethod
-    def get_link(item, request):
+    def get_url(item, request):
         offer = request['offer']
         link = offer.find("a")
-        item['link'] = link.attrs['href']
+        item['url'] = link.attrs['href']
 
     @staticmethod
     def get_name(item, request):
@@ -74,8 +72,8 @@ class ChmielnaIg(ItemGetter):
         item['item_id'] = get_item_id(request['offer'])
 
     @staticmethod
-    def get_img_link(item, request):
-        item['img_link'] = get_img_link(request['offer'])
+    def get_img_url(item, request):
+        item['img_url'] = get_img_link(request['offer'])
 
 
 def links(base_links, soup_loader):
@@ -163,8 +161,4 @@ if __name__ == '__main__':
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)
     logging.getLogger('').addHandler(h)
-    if parserdb.is_finished(scraper_name):
-        chmielna20_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
+    chmielna20_parse()

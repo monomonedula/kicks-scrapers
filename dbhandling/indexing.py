@@ -5,14 +5,13 @@ from pymongo import MongoClient
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 
+from dbhandling.scr_session import ScrapingSession
 
 es = Elasticsearch(['http://localhost:9200/'])
 mongo_client = MongoClient()
 scraping = mongo_client.scraping
 
 logger = logging.getLogger(__name__)
-
-main_index_name = 'kicks'
 
 this_directory_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,6 +20,8 @@ with open(os.path.join(this_directory_path, 'update_script.painless')) as scr:
 
 
 class Writer:
+    conn = es
+
     class ItemsBuffer:
         def __init__(self, max_size):
             self.max_size = max_size
@@ -36,25 +37,22 @@ class Writer:
             return len(self) == 0
 
         def add(self, item):
-            if self.is_full:
+            if self.is_full():
                 raise BufferOverflowException('Unable to add item to buffer. Buffer is full')
-            self.items[item.id] = item
+            self.items[item.meta.id] = item
 
         def retrieve(self):
-            return [self.items.pop(key) for key in self.items]
+            items = list(self.items.values())
+            self.items = {}
+            return items
 
-    def __init__(self, scraper_name, conn, items, buffer_size=200):
+    def __init__(self, scraper_name, items, conn=None, buffer_size=200):
         self.scraper_name = scraper_name
-        self.conn = conn
+        if conn is not None:
+            self.conn = conn
         self.items_iter = items.__iter__()
         self.buff_size = buffer_size
         self.buffer = self.ItemsBuffer(buffer_size)
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
 
     def fill_buffer(self):
         for item in self.items_iter:
@@ -73,21 +71,94 @@ class Writer:
         updates = (item.get_bulk_update_dict() for item in items_batch)
         return bulk(self.conn, updates)
 
-    @classmethod
-    def write_items(cls, items, conn, scraper_name, buffer_size=200):
-        with cls(scraper_name, conn, items, buffer_size) as writer:
-            while writer.fill_buffer():
-                writer.write_from_buffer()
-            try:
-                writer.write_from_buffer()
-            except EmptyBufferWriteException:
-                pass
+    def write_items(self):
+        while self.fill_buffer():
+            self.write_from_buffer()
+        try:
+            self.write_from_buffer()
+        except EmptyBufferWriteException:
+            pass
 
 
 class SizeLayerWriter(Writer):
-    def write_from_buffer(self):
-        pass
+    class ItemsBuffer(Writer.ItemsBuffer):
+        def is_full(self):
+            return False
 
+        def add(self, item):
+            if item.meta.id in self.items:
+                old_item = self.items[item.meta.id]
+                # no sets are used for merging here
+                # because it is expected that the
+                # new item has only
+                # one or few sizes
+                for s in item.sizes:
+                    if s not in old_item.sizes:
+                        old_item.sizes.append(s)
+            else:
+                self.items[item.meta.id] = item
+
+    def __init__(self, scraper_name, items, conn=None):
+        super().__init__(scraper_name=scraper_name,
+                         conn=conn,
+                         items=items,
+                         buffer_size=-1)
+
+
+class SessionedWriter(Writer):
+    def __init__(self, scraper_name,
+                 items, conn=None, buffer_size=200,
+                 allow_concurrent_sessions=False):
+        self.allow_concurrent_sessions = allow_concurrent_sessions
+        self.session = None
+        self.written_count = 0
+        super().__init__(scraper_name=scraper_name,
+                         conn=conn,
+                         items=items,
+                         buffer_size=buffer_size)
+
+    def write_items(self):
+        self.session = ScrapingSession.open_new_session(self.scraper_name,
+                                                        self.allow_concurrent_sessions)
+        with self.session:
+            super().write_items()
+
+    def write_from_buffer(self):
+        logger.info('Writing batch to elasticsearch.'
+                    ' Batch size: %s, session id: %s' % (len(self.buffer),
+                                                         self.session.id))
+        buffer_size = len(self.buffer)
+        res = super().write_from_buffer()
+        self.written_count += buffer_size
+        return res
+
+
+class SessionedSizeLayerWriter(SizeLayerWriter):
+    def __init__(self, scraper_name,
+                 items, conn=None, allow_concurrent_sessions=False):
+        self.allow_concurrent_sessions = allow_concurrent_sessions
+        self.session = None
+        self.written_count = 0
+        super().__init__(scraper_name=scraper_name,
+                         conn=conn,
+                         items=items)
+
+    def write_items(self):
+        self.session = ScrapingSession.open_new_session(self.scraper_name,
+                                                        self.allow_concurrent_sessions)
+        with self.session:
+            super().write_items()
+            logger.info('Closing scraping session %s. Total items obtained: %s' % (self.session.id,
+                                                                                   self.written_count))
+
+    def write_from_buffer(self):
+        logger.info('Writing batch to elasticsearch.'
+                    ' Batch size: %s, session id: %s' % (len(self.buffer),
+                                                         self.session.id))
+        buffer_size = len(self.buffer)
+        res = super().write_from_buffer()
+        self.written_count += buffer_size
+        return res
 
 
 class BufferOverflowException(Exception):
@@ -96,4 +167,3 @@ class BufferOverflowException(Exception):
 
 class EmptyBufferWriteException(Exception):
     pass
-

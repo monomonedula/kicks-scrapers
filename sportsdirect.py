@@ -5,7 +5,7 @@ from time import sleep
 from fluent import asynchandler, handler
 
 from dbhandling import parserdb
-import Parsing
+import Scraping
 from webutils.pageloader import SoupLoader
 from basic_utils import (format_size_number, convert, text_spaces_del, text_lower)
 from itemgetter import ItemGetter
@@ -29,7 +29,7 @@ baselinks = [
 scraper_name = 'sportsdirect'
 
 
-def sportsdirect_parse(output=Parsing.database_writer):
+def sportsdirect_parse():
     soup_loader = SoupLoader(bot=True)
     ig = SportsDirectIg(soup_loader)
     parser = Parsing.BaseParser(get_offers_list=get_offers_list,

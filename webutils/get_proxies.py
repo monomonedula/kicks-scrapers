@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -16,11 +15,7 @@ class ProxiesList:
         self.exp_td = expiration_timedelta
 
     def pop(self):
-        if not self.proxies_list:
-            logger.info('Proxies list is empty. Calling refresh function...')
-            self.refresh()
-        if self.expired():
-            logger.info('Proxies list update expired. Calling refresh function...')
+        if not self.proxies_list or self.expired():
             self.refresh()
 
         logger.debug('Popping proxy list element {} ...'.format(self.proxies_list[-1]))
@@ -39,10 +34,12 @@ class ProxiesList:
         self.last_update = datetime.utcnow()
 
 
-
 def load_free_proxies_soup():
     link = "https://free-proxy-list.net"
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/63.0.3239.84 Chrome/63.0.3239.84 Safari/537.36"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko)"
+                      " Ubuntu Chromium/63.0.3239.84 Chrome/63.0.3239.84 Safari/537.36"}
 
     session = requests.Session()
     req = session.get(link, headers=headers)
@@ -50,11 +47,11 @@ def load_free_proxies_soup():
 
 
 def get_proxies_list(*, anonymity='elite proxy', requests_format=False):
-    ''' anonymity = 'elite proxy' by default
+    """ anonymity = 'elite proxy' by default
         may be also: 'anonymous', 'transparent'
 
         returns list of (adress, port) tuples
-    '''
+    """
     bs = load_free_proxies_soup()
     rows = bs.find_all('tr')
     res = []
@@ -65,7 +62,7 @@ def get_proxies_list(*, anonymity='elite proxy', requests_format=False):
             port = tds[1].text
             if requests_format:
                 res.append({'https': ('http://' + adress + ':' + port),
-                        'http': ('http://' + adress + ':' + port)})
+                            'http': ('http://' + adress + ':' + port)})
             else:
                 res.append((adress, port))
 

@@ -7,6 +7,8 @@ import mongoengine
 
 logger = logging.getLogger(__name__)
 
+mongoengine.connect(db='kicks')
+
 
 class ScrapingSession(mongoengine.Document):
     pid = mongoengine.IntField(required=True, default=os.getpid)
@@ -22,8 +24,9 @@ class ScrapingSession(mongoengine.Document):
 
     @classmethod
     def open_new_session(cls, scraper_name, allow_concurrent_sessions=False):
+        logger.info('Creating session record...')
         if not allow_concurrent_sessions and \
-                cls.objects(scraper_name=scraper_name, open=True):
+                cls.objects(scraper=scraper_name, open=True):
             raise ConcurrentSessionError('Cannot start new session for this scraper '
                                          'because scraper with the same name is already running.')
         session = cls.get_new_session(scraper_name)

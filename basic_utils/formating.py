@@ -37,15 +37,3 @@ def convert(frm, to, amount, ndigits=0):
     res = round(res, ndigits)
 
     return int(res)
-
-
-def sizes_to_one_string(sizes, separator=' '):
-    return ' '.join(sizes)
-
-
-def get_from_prnths(s):
-    """returns list of parentheses with their contents """
-    return re.findall('\(.*?\)', s)
-
-
-
