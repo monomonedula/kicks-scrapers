@@ -2,7 +2,7 @@
 import logging
 import re
 
-from .decorators import size_value_format_check
+from . import size_value_format_check
 
 logger = logging.getLogger(__name__)
 

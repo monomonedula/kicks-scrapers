@@ -4,14 +4,13 @@ import json
 
 from fluent import asynchandler, handler
 
-from dbhandling import parserdb
-import Parsing
+import Scraping
 from basic_utils import text_lower, convert, format_size_number
+from dbhandling.indexing import SessionedWriter
 from webutils.pageloader import LxmlSoupLoader
 from itemgetter import ItemGetter
 
 logger = logging.getLogger(__name__)
-
 
 adidas_baselinks = [
     'https://www.adidas.pl/mezczyzni-buty?start={position}',
@@ -21,21 +20,21 @@ adidas_baselinks = [
 scraper_name = 'adidas'
 
 
-def adidas_parse(*, output=Parsing.database_writer, ipp=24):
+def adidas_parse(ipp=24):
     if ipp not in (120, 24):
         raise ValueError('Unknown items per page value: {}'.format(ipp))
     soup_loader = LxmlSoupLoader(bot=False, use_proxies=True)
 
     ig = AdidasIg(soup_loader=soup_loader)
-    parser = Parsing.BaseParser(get_offers_list=get_offers_list,
-                                get_item_dict=ig,
-                                soup_loader=soup_loader)
+    scrape = Scraping.BaseScraper(get_offers_list=get_offers_list,
+                                  get_item_dict=ig,
+                                  soup_loader=soup_loader)
 
-    links = Parsing.links(baselinks=adidas_baselinks,
-                          maxpage=get_maxpage_func(soup_loader, ipp),
-                          ipp=ipp,
-                          start_from=0)
-    return output(parser(links), scraper_name)
+    links = Scraping.links(baselinks=adidas_baselinks,
+                           maxpage=get_maxpage_func(soup_loader, ipp),
+                           ipp=ipp,
+                           start_from=0)
+    return scrape(links)
 
 
 class AdidasIg(ItemGetter):
@@ -45,13 +44,11 @@ class AdidasIg(ItemGetter):
         'get_link',
         'get_colorway',
         'get_brand',
-        # 'get_name',
         'get_model',
         'get_price',
         'get_item_id',
         'get_sizes',
         'get_img_link',
-        # 'get_additional_info',
         'get_utc',
     ]
 
@@ -84,7 +81,6 @@ class AdidasIg(ItemGetter):
         link = 'https://www.adidas.pl/api/products/{}/availability'.format(iid)
         sizes_json_req = self.soup_loader.loadpage(link)
         item['sizes'] = get_sizes(sizes_json_req.text)
-
 
     @staticmethod
     def get_img_link(item, request):
@@ -136,7 +132,7 @@ def get_sizes(size_req_json):
 
 @text_lower
 def get_item_id(link):
-    print('Link %s '% link)
+    print('Link %s ' % link)
     _, iid = link.rsplit('/', 1)
     iid, _ = iid.split('.', 1)
     return iid
@@ -161,6 +157,7 @@ def get_maxpage_func(lxml_soup_loader, ipp=24):
         print('soup type: ', type(soup))
         tag = soup.cssselect('.count___11uU6')[0]
         return 1 + int(re.sub('\D', '', tag.text)) // ipp
+
     return maxpage
 
 
@@ -179,9 +176,6 @@ if __name__ == '__main__':
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)
     logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        adidas_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
+    items = adidas_parse()
+    writer = SessionedWriter(scraper_name, items)
+    writer.write_items()

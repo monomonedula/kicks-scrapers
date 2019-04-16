@@ -15,22 +15,6 @@ def text_spaces_del(func):
     return decor
 
 
-def text_smart_spaces_del(func):
-    rare_symbols = ('~', '@', '`', '#', '%', '^', '&', '*', '+', '/', '$', ':',)
-
-    @wraps(func)
-    def decor(*args, **kwargs):
-        res = func(*args, **kwargs)
-        for s in rare_symbols:
-            if s not in res:
-                res = res.replace('\n', s )
-                res = ' '.join(res.split())
-                return res.replace(s, '\n')
-        else:
-            raise ValueError('Cannot find symbol to temporary replace new line symbol')
-    return decor
-
-
 def size_value_format_check(func):
     @wraps(func)
     def decor(s):

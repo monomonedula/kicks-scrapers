@@ -21,7 +21,7 @@ scraper_name = 'sizeer'
 
 
 def sizeer_parse():
-    soup_loader = SoupLoader(use_proxies=False)
+    soup_loader = SoupLoader(use_proxies=True)
     ig = SizeerIg(soup_loader)
     parser = Scraping.BaseScraper(get_offers_list=get_offers_list, get_item_dict=ig,
                                   soup_loader=soup_loader)

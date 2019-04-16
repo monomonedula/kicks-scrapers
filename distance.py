@@ -3,14 +3,13 @@ import re
 
 from fluent import asynchandler, handler
 
-import Parsing
+import Scraping
+from dbhandling.indexing import SessionedWriter
 from webutils.pageloader import LxmlSoupLoader
 from basic_utils import (convert,
                          text_spaces_del, text_lower,
                          format_size_number)
-from itemgetter import ItemGetter
-from dbhandling import parserdb
-
+from itemgetter import LinkIdentifiedItemGetter as ItemGetter
 
 logger = logging.getLogger(__name__)
 
@@ -23,38 +22,37 @@ baselinks = [
 scraper_name = 'distance'
 
 
-def distance_scrape(output=Parsing.database_writer):
+def distance_scrape():
     soup_loader = LxmlSoupLoader()
     ig = DistanceIg(soup_loader)
-    parser = Parsing.BaseParser(get_offers_list=get_offers_list, get_item_dict=ig,
-                                soup_loader=soup_loader)
+    scraper = Scraping.BaseScraper(get_offers_list=get_offers_list, get_item_dict=ig,
+                                   soup_loader=soup_loader)
 
-    link_generator = Parsing.links(baselinks, maxpage=get_maxpage(soup_loader))
-    item_generator = parser(link_generator)
-    return output(item_generator, scraper_name)
+    link_generator = Scraping.links(baselinks, maxpage=get_maxpage(soup_loader))
+    item_generator = scraper(link_generator)
+    return item_generator
 
 
 class DistanceIg(ItemGetter):
     fields = [
-        'get_link',
+        'get_url',
         'get_name',
-        'get_img_link',
+        'get_img_url',
         'get_price',
         'get_sizes',
-        'get_utc',
     ]
 
     @staticmethod
-    def get_link(item, request):
-        item['link'] = get_link(request['offer'])
+    def get_url(item, request):
+        item['url'] = get_link(request['offer'])
 
     @staticmethod
     def get_name(item, request):
         item['name'] = get_name(request['offer'])
 
     @staticmethod
-    def get_img_link(item, request):
-        item['img_link'] = get_img_link(request['offer'])
+    def get_img_url(item, request):
+        item['img_url'] = get_img_link(request['offer'])
 
     @staticmethod
     def get_price(item, request):
@@ -107,6 +105,7 @@ def get_maxpage(soup_loader):
         return int(pg.cssselect('#wrapper > div.container >'
                                 ' div.productsWrapper > div.pagination >'
                                 ' div > a.last')[0].text)
+
     return maxpage
 
 
@@ -125,9 +124,6 @@ if __name__ == '__main__':
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)
     logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        distance_scrape()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
+    items = distance_scrape()
+    writer = SessionedWriter(scraper_name, items)
+    writer.write_items()

@@ -4,16 +4,14 @@ from time import sleep
 
 from fluent import asynchandler, handler
 
-import Parsing
-from dbhandling import parserdb
+import Scraping
+from dbhandling.indexing import SessionedWriter
 from webutils.pageloader import SoupLoader
 from basic_utils import (format_size_number,
                          convert, text_spaces_del, text_lower)
 from itemgetter import ItemGetter
 
-
 logger = logging.getLogger(__name__)
-
 
 baselinks = [
     "https://www.mandmdirect.pl/01/m%C4%99skie/obuwie/{position}",
@@ -23,13 +21,13 @@ baselinks = [
 scraper_name = 'mandmdirect'
 
 
-def mandmdirect_parse(output=Parsing.database_writer):
+def mandmdirect_parse():
     soup_loader = SoupLoader(bot=False, use_proxies=True)
     ig = MandmdirectIg(soup_loader)
-    links = Parsing.links(baselinks, get_maxpage_func(soup_loader))
-    parser = Parsing.BaseParser(get_offers_list=get_offers_list, get_item_dict=ig,
-                                soup_loader=soup_loader)
-    output(parser(links), scraper_name)
+    links = Scraping.links(baselinks, get_maxpage_func(soup_loader))
+    scraper = Scraping.BaseScraper(get_offers_list=get_offers_list, get_item_dict=ig,
+                                   soup_loader=soup_loader)
+    return scraper(links)
 
 
 class MandmdirectIg(ItemGetter):
@@ -73,6 +71,7 @@ def get_maxpage_func(soup_loader):
         pgnums = bsobj.find("span", {"class": "pageNumbers"})
         pgnums = pgnums.text.split("z")[1]
         return int(pgnums)
+
     return maxpage
 
 
@@ -134,9 +133,6 @@ if __name__ == '__main__':
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)
     logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        mandmdirect_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
+    items = mandmdirect_parse()
+    writer = SessionedWriter(scraper_name, items)
+    writer.write_items()

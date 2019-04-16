@@ -64,7 +64,7 @@ class ScrapingSession(mongoengine.Document):
                          'session_id': self.id,
                          'docs_count': self.documents_count})
         self.modify(set__open=False, set__termination_time=datetime.utcnow(),
-                    set__is_ok=False)
+                    set__is_ok=False, )
 
     def update_status(self, doc_count):
         self.modify(set__last_activity=datetime.utcnow(),

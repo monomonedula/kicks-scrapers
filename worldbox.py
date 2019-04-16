@@ -4,12 +4,11 @@ from time import sleep
 
 from fluent import asynchandler, handler
 
-from dbhandling import parserdb
-import Parsing
+import Scraping
+from dbhandling.indexing import SessionedWriter
 from webutils.pageloader import SoupLoader
 from basic_utils import (convert, text_spaces_del, text_lower, format_size_number)
-from itemgetter import ItemGetter
-
+from itemgetter import LinkIdentifiedItemGetter as ItemGetter
 
 baselinks = [
     'https://worldbox.pl/products/mezczyzna-obuwie/category,2/gender,M/item,72/page,{position}',
@@ -21,29 +20,28 @@ logger = logging.getLogger(__name__)
 scraper_name = 'worldbox'
 
 
-def worldbox_parse(output=Parsing.database_writer):
+def worldbox_parse():
     soup_loader = SoupLoader()
     wb_ig = WorldboxIg(soup_loader)
-    parser = Parsing.BaseParser(get_offers_list=get_offers_list, get_item_dict=wb_ig,
-                                soup_loader=soup_loader)
-    link_gen = Parsing.links(baselinks, get_maxpage_func(soup_loader))
-    item_gen = parser(links=link_gen)
-    return output(item_gen, "worldbox")
+    scraper = Scraping.BaseScraper(get_offers_list=get_offers_list, get_item_dict=wb_ig,
+                                   soup_loader=soup_loader)
+    link_gen = Scraping.links(baselinks, get_maxpage_func(soup_loader))
+    return scraper(links=link_gen)
+
 
 class WorldboxIg(ItemGetter):
     fields = [
-        'get_link',
+        'get_url',
         'get_name',
         'get_colorway',
         'get_price',
         'get_sizes',
-        'get_img_link',
-        'get_utc',
+        'get_img_url',
     ]
 
     @staticmethod
-    def get_link(item, request):
-        item['link'] = get_link(request['offer'])
+    def get_url(item, request):
+        item['url'] = get_link(request['offer'])
 
     @staticmethod
     def get_name(item, request):
@@ -61,8 +59,8 @@ class WorldboxIg(ItemGetter):
         item['sizes'] = get_sizes(request['offer'])
 
     @staticmethod
-    def get_img_link(item, request):
-        item['img_link'] = get_img_link(request['offer'])
+    def get_img_url(item, request):
+        item['img_url'] = get_img_link(request['offer'])
 
 
 def get_maxpage_func(soup_loader):
@@ -71,8 +69,9 @@ def get_maxpage_func(soup_loader):
         ul = bs_obj.find("ul", {"class": "pagination"})
         lis = ul.findAll("li")
         mxpg = lis[-2].text
-        mxpg = re.sub('\D', '', mxpg)
+        mxpg = re.sub(r'\D', '', mxpg)
         return int(mxpg)
+
     return maxpage
 
 
@@ -156,9 +155,6 @@ if __name__ == '__main__':
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)
     logging.getLogger('').addHandler(h)
-
-    if parserdb.is_finished(scraper_name):
-        worldbox_parse()
-    else:
-        logger.error('Scraping job cannot be started because'
-                     ' job with the same name %r is not finished. ' % scraper_name)
+    items = worldbox_parse()
+    writer = SessionedWriter(scraper_name, items)
+    writer.write_items()

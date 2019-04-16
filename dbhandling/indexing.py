@@ -130,6 +130,7 @@ class SessionedWriter(Writer):
         buffer_size = len(self.buffer)
         res = super().write_from_buffer()
         self.written_count += buffer_size
+        self.session.update_status(self.written_count)
         return res
 
 
@@ -158,6 +159,7 @@ class SessionedSizeLayerWriter(SizeLayerWriter):
         buffer_size = len(self.buffer)
         res = super().write_from_buffer()
         self.written_count += buffer_size
+        self.session.update_status(self.written_count)
         return res
 
 

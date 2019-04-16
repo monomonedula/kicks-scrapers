@@ -15,17 +15,21 @@ class Non200StatusCodeException(Exception):
     pass
 
 
+class ProxyConnectionError(Exception):
+    pass
+
+
 class SoupLoader:
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0"}
 
     bot_headers = {'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'}
 
-    def __init__(self, bot=False, use_proxies=True, timeout=25, proxy_retry_limit=10):
+    def __init__(self, bot=False, use_proxies=True,
+                 timeout=25, proxy_retry_limit=30):
         self.session = requests.Session()
         self.proxies_list = SmartProxyList(requests_format=True)
         self.proxy = self.proxies_list.pop()
-        # self.tested_proxies = {}
-        self.retry_limit = proxy_retry_limit
+        self.proxy_search_retry_limit = proxy_retry_limit
         self.error_count = 0
         self.use_proxies = use_proxies
         self.timeout = timeout
@@ -39,6 +43,8 @@ class SoupLoader:
             if not response:
                 raise Non200StatusCodeException
         except (requests.RequestException, Non200StatusCodeException, timeout):
+            if not self.use_proxies:
+                raise
             data = self.next_proxy(link, proxies_per_test)
             self.error_count = 0
             return data
@@ -50,14 +56,26 @@ class SoupLoader:
         try:
             self.proxy = self.proxies_list.pop_tested(url)
         except (ProxyListTimedOut, ProxyListEmpty):
-            response, proxies = self.test_proxies(url, proxies_per_test,
-                                                  self.timeout)
+            response, proxies = self.run_proxy_race(url, proxies_per_test,
+                                                    self.timeout)
             self.proxies_list.update(url, proxies)
             return self.process_response(response)
         else:
             return self(url, proxies_per_test)
 
-    def test_proxies(self, url, proxies_per_test, timeout, max_workers=10):
+    def run_proxy_race(self, url, proxies_per_test, timeout, max_workers=10):
+        response, good_proxies = self._proxy_race(url, proxies_per_test, timeout,
+                                                  max_workers)
+        if response:
+            return response, good_proxies
+        self.error_count += proxies_per_test
+        if self.error_count > self.proxy_search_retry_limit:
+            raise ProxyConnectionError('Working proxy search limit'
+                                       ' reached (%s proxy tried)' %
+                                       self.error_count)
+        return self.run_proxy_race(url, proxies_per_test, timeout, max_workers)
+
+    def _proxy_race(self, url, proxies_per_test, timeout, max_workers=10):
         proxies = [self.proxies_list.pop() for _ in range(proxies_per_test)]
 
         session = FuturesSession(max_workers=max_workers)
@@ -71,6 +89,8 @@ class SoupLoader:
             try:
                 r = future.result()
             except Exception:
+                logger.exception('Proxy race failed for proxy %s for url %s .'
+                                 ' Moving to next proxy...' % (proxy, url))
                 pass
             else:
                 if r:
@@ -83,7 +103,6 @@ class SoupLoader:
         return BeautifulSoup(response.text, 'lxml')
 
     def loadpage(self, link):
-        logger.warning('test')
         if self.use_proxies:
             res = self.session.get(link, headers=self.headers,
                                    proxies=self.proxy,
@@ -94,14 +113,6 @@ class SoupLoader:
 
 
 class LxmlSoupLoader(SoupLoader):
-    def __call__(self, link, proxies_per_test=10):
-        req = self.loadpage(link)
-
-        if req:
-            return fromstring(req.text)
-        elif not self.use_proxies:
-            self.use_proxies = True
-        else:
-            self.proxies = self.proxies_list.pop()
-
-        return self(link)
+    @staticmethod
+    def process_response(response):
+        return fromstring(response.text)

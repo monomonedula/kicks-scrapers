@@ -23,7 +23,7 @@ scraper_name = 'chmielna20'
 
 
 def chmielna20_parse():
-    soup_loader = SoupLoader(bot=True, use_proxies=False)
+    soup_loader = SoupLoader(bot=True, use_proxies=True)
     cg = ChmielnaIg(soup_loader)
     parser = Scraping.BaseScraper(get_offers_list=get_offers_list,
                                   get_item_dict=cg,
@@ -37,10 +37,7 @@ def chmielna20_parse():
 class ChmielnaIg(LinkIdentifiedItemGetter):
     fields = [
         'get_url',
-        # 'get_colorway',
-        # 'get_brand',
         'get_name',
-        # 'get_model',
         'get_price',
         'get_sizes',
         'get_item_id',
