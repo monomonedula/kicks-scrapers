@@ -8,7 +8,7 @@ from elasticsearch_dsl import (Text, Document, Integer, Double, Keyword,
 
 client = Elasticsearch()
 
-index_name = 'kicks_test'
+index_name = 'kicks'
 
 logger = logging.getLogger(__name__)
 
