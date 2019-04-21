@@ -35,13 +35,17 @@ class SneakerItem(Document):
     url = Text(
         analyzer='simple',
         fields={'keyword': Keyword()},
-        required=True
+        required=True,
     )
     img_url = Text(
         analyzer='simple',
         fields={'keyword': Keyword()}
     )
-    last_update = Double(default=get_time)
+    telegram_img_id = Text(
+        analyzer='simple',
+        fields={'keyword': Keyword()}
+    )
+    last_update = Double()
 
     new = Boolean()
     new_sizes = Keyword(multi=True)
