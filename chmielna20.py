@@ -127,7 +127,7 @@ def get_item_id(offer):
 
 def get_img_link(offer):
     img = offer.find("img")
-    return img.attrs['src']
+    return img.attrs['data-echo']
 
 
 def get_price(offer):
