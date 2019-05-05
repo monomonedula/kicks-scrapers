@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 scraper_name = 'worldbox'
 
 
-def worldbox_parse():
+def worldbox_scrape():
     soup_loader = SoupLoader()
     wb_ig = WorldboxIg(soup_loader)
     scraper = Scraping.BaseScraper(get_offers_list=get_offers_list, get_item_dict=wb_ig,
@@ -91,7 +91,7 @@ def get_item_id(offer):
 
 
 def get_img_link(offer):
-    return offer.img.attrs["src"]
+    return offer.img.attrs['data-echo']
 
 
 def get_link(offer):
@@ -155,6 +155,6 @@ if __name__ == '__main__':
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)
     logging.getLogger('').addHandler(h)
-    items = worldbox_parse()
+    items = worldbox_scrape()
     writer = SessionedWriter(scraper_name, items)
     writer.write_items()
