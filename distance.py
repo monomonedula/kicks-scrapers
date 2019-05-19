@@ -74,9 +74,12 @@ def get_name(offer):
 
 
 def get_img_link(offer):
-    return offer.cssselect('a:nth-child(1) >'
-                           ' div:nth-child(1) >'
-                           ' img:nth-child(1)')[0].attrib['src'].strip('//')
+    url = offer.cssselect('a:nth-child(1) >'
+                          ' div:nth-child(1) >'
+                          ' img:nth-child(1)')[0].attrib['src'].strip('//')
+    if not url.startswith('http'):
+        return 'https://' + url
+    return url
 
 
 def get_price(offer):
