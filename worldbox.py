@@ -33,7 +33,7 @@ class WorldboxIg(ItemGetter):
     fields = [
         'get_url',
         'get_name',
-        'get_colorway',
+        # 'get_colorway',
         'get_price',
         'get_sizes',
         'get_img_url',

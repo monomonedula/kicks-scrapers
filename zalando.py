@@ -29,7 +29,7 @@ scraper_name = 'zalando'
 
 
 def zalando_scrape():
-    soup_loader = LxmlSoupLoader(use_proxies=False)
+    soup_loader = LxmlSoupLoader(use_proxies=True)
     ig = ZalandoIg(soup_loader)
     scraper = Scraping.BaseScraper(get_offers_list=get_offers_list, get_item_dict=ig,
                                    soup_loader=soup_loader)
@@ -130,11 +130,11 @@ if __name__ == '__main__':
         'stack_trace': '%(exc_text)s',
     }
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger('')
-    logger.setLevel(level=logging.INFO)
+    logger.setLevel(level=logging.DEBUG)
     h = asynchandler.FluentHandler('kicks.scraper.%s' % scraper_name, host='localhost', port=24224)
-    h.setLevel(level=logging.INFO)
+    h.setLevel(level=logging.DEBUG)
     formatter = handler.FluentRecordFormatter(log_format)
     h.setFormatter(formatter)
     logging.getLogger('').addHandler(h)
