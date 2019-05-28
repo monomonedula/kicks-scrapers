@@ -80,7 +80,7 @@ def get_maxpage(soup_loader):
     def maxpage(link):
         bs_obj = soup_loader(link.format(position="1"))
         nav = bs_obj.find("nav", {"class": "m-pagination"})
-        num_string = nav.span.text
+        num_string = nav.find("span", class_=None).text
         return int(only_digits(num_string))
     return maxpage
 
