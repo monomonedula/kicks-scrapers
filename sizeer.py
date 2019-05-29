@@ -105,7 +105,7 @@ def get_id(offer):
 
 
 def get_img_link(offer):
-    return "https://sklep.sizeer.com" + offer.a.img.attrs["src"]
+    return "https://sklep.sizeer.com" + offer.a.img.attrs["data-src"]
 
 
 def get_link(offer):
