@@ -1,5 +1,7 @@
 import logging
+import re
 from datetime import datetime, timedelta
+import json
 
 import requests
 from bs4 import BeautifulSoup
@@ -35,15 +37,10 @@ class ProxiesList:
 
 
 def load_free_proxies_soup():
-    link = "https://free-proxy-list.net"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko)"
-                      " Ubuntu Chromium/63.0.3239.84 Chrome/63.0.3239.84 Safari/537.36"}
-
-    session = requests.Session()
-    req = session.get(link, headers=headers)
-    return BeautifulSoup(req.text, 'lxml')
+    # link = "https://free-proxy-list.net"
+    link = "http://www.gatherproxy.com/"
+    res = requests.get(link)
+    return BeautifulSoup(res.text, 'lxml')
 
 
 def get_proxies_list(*, anonymity='elite proxy', requests_format=False):
@@ -53,18 +50,24 @@ def get_proxies_list(*, anonymity='elite proxy', requests_format=False):
         returns list of (adress, port) tuples
     """
     bs = load_free_proxies_soup()
-    rows = bs.find_all('tr')
+    table = bs.find('table')
+    scripts = table.find_all('script')
     res = []
-    for row in rows:
-        if row.find('td', text=anonymity):
-            tds = row.find_all('td')
-            adress = tds[0].text
-            port = tds[1].text
+    for s in scripts:
+        try:
+            data = re.search(r"({[^}]*})", s.text)[0]
+            data = json.loads(data)
+        except Exception as e:
+            print(e)
+        else:
+            adress = data['PROXY_IP']
+            port = data['PROXY_PORT']
+            port = int(port, 16)
             if requests_format:
-                res.append({'https': ('http://' + adress + ':' + port),
-                            'http': ('http://' + adress + ':' + port)})
+                res.append({'https': f'http://{adress}:{port}',
+                            'http': f'http://{adress}:{port}'})
             else:
-                res.append((adress, port))
+                res.append((adress, str(port)))
 
     logger.debug('Retrieved proxies: {}'.format(res))
     res.reverse()
