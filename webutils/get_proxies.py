@@ -43,7 +43,7 @@ def load_free_proxies_soup():
     return BeautifulSoup(res.text, 'lxml')
 
 
-def get_proxies_list(*, anonymity='elite proxy', requests_format=False):
+def get_proxies_list(*, requests_format=False):
     """ anonymity = 'elite proxy' by default
         may be also: 'anonymous', 'transparent'
 
@@ -60,6 +60,8 @@ def get_proxies_list(*, anonymity='elite proxy', requests_format=False):
         except Exception as e:
             print(e)
         else:
+            if data['PROXY_TYPE'] not in ('Elite', 'Anonymous'):
+                continue
             adress = data['PROXY_IP']
             port = data['PROXY_PORT']
             port = int(port, 16)
