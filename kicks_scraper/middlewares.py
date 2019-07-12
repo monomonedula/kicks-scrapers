@@ -42,6 +42,7 @@ class RotatingProxyMiddleware(RPMd):
             backoff_cap=backoff_cap,
             crawler=crawler,
         )
+        # TODO: make some more elegant replacement of 'Proxies' class than this
         self.proxies = NeverEndingProxies(backoff=self.proxies.backoff)
 
     @classmethod
