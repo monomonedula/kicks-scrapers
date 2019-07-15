@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import (Text, Document, Integer, Double, Keyword,
-                               Boolean)
+                               Boolean, Float)
 
 client = Elasticsearch()
 
@@ -84,6 +84,80 @@ class SneakerItem(Document):
         pass
 
     def get_upsert_dict(self):
-        d = self.to_dict()
-        d['new'] = True
-        return d
+        return {**self.to_dict(), 'new': True}
+
+
+class RunRepeatItem(Document):
+    class Index:
+        name = 'runrepeat'
+        using = client
+
+    name = Text()
+    core_score = Integer()
+
+    price = Integer()
+    weight = Float()
+    top = Keyword()
+
+    top_most_popular = Integer()
+    top_brand = Integer()
+    top_overall = Integer()
+
+    collection = Text(analyzer='simple',
+                      fields={'keyword': Keyword()},
+                      required=True, )
+
+    def get_bulk_update_dict(self):
+        d = self.to_dict(include_meta=True)
+        del d['_source']
+        return {
+            **self.to_dict(),
+            'doc': self.get_upsert_dict(),
+            '_op_type': 'update',
+            'doc_as_upsert': True,
+        }
+
+
+class RRSneaker(RunRepeatItem):
+    inspired_from = Text(analyzer='simple',
+                         fields={'keyword': Keyword()},
+                         required=True, )
+
+
+class RRRunning(RunRepeatItem):
+    terrain = Text(analyzer='simple',
+                   fields={'keyword': Keyword()},
+                   required=True, )
+    arch_support = Text(analyzer='simple',
+                        fields={'keyword': Keyword()},
+                        required=True, )
+    use = Text(analyzer='simple',
+               fields={'keyword': Keyword()},
+               required=True, )
+
+
+class RRBasketballShoes(RunRepeatItem):
+    lockdown = Text(analyzer='simple',
+                    fields={'keyword': Keyword()},
+                    required=True, )
+
+
+class RRFootballShoes(RunRepeatItem):
+    surface = Text(analyzer='simple',
+                   fields={'keyword': Keyword()},
+                   required=True, )
+    lacing = Text(analyzer='simple',
+                  fields={'keyword': Keyword()},
+                  required=True, )
+
+
+class RRTrainingShoes(RunRepeatItem):
+    use = Text(analyzer='simple',
+               fields={'keyword': Keyword()},
+               required=True, )
+    htt_drop = Text(analyzer='simple',
+                    fields={'keyword': Keyword()},
+                    required=True, )
+    arch_support = Text(analyzer='simple',
+                        fields={'keyword': Keyword()},
+                        required=True, )
