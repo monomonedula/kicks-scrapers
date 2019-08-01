@@ -1,14 +1,6 @@
-# -*- coding: utf-8 -*-
-
-# Define here the models for your scraped items
-#
-# See documentation in:
-# https://doc.scrapy.org/en/latest/topics/items.html
-
 import scrapy
 
-from dbhandling.elastic_models import SneakerItem, RunRepeatItem as RRElastic, \
-    RRRunning, RRSneaker, RRBasketballShoes, RRFootballShoes, RRTrainingShoes
+from dbhandling.elastic_models import SneakerItem, RunRepeatItem as RRElastic
 
 
 class KicksScraperItem(scrapy.Item):
@@ -36,17 +28,24 @@ class RunRepeatItem(scrapy.Item):
 
     id = scrapy.Field()
     name = scrapy.Field()
-    core_score = scrapy.Field()
+    brand = scrapy.Field()
+    brand_slug = scrapy.Field()
+    score = scrapy.Field()
+    views = scrapy.Field()
+    categories = scrapy.Field()
 
-    price = scrapy.Field()
-    weight = scrapy.Field()
-    top = scrapy.Field()    # low, mid, high
+    @classmethod
+    def from_dict(cls, data: dict, use_users_score=False):
+        item = cls(id=data['slug'],
+                   name=data['brand']['name'],
+                   brand_slug=data['brand']['slug'],
+                   views=data['views'],
+                   score=data['score'],
+                   categories=data['categories'])
 
-    top_most_popular = scrapy.Field()
-    top_brand = scrapy.Field()
-    top_overall = scrapy.Field()
-
-    collection = scrapy.Field()
+        if use_users_score and item['score'] == 0:
+            item['score'] = data['users_score']
+        return item
 
     def to_elastic(self):
         d = self.copy()
@@ -54,39 +53,3 @@ class RunRepeatItem(scrapy.Item):
         item = self.elastic_model(**d)
         item.meta.id = self.id
         return item
-
-
-class RunRepeatSneaker(RunRepeatItem):
-    elastic_model = RRSneaker
-
-    inspired_from = scrapy.Field()
-
-
-class RunRepeatRunning(RunRepeatItem):
-    elastic_model = RRRunning
-
-    terrain = scrapy.Field()
-    arch_support = scrapy.Field()
-    use = scrapy.Field()
-
-
-class RunRepeatBasketballShoes(RunRepeatItem):
-    elastic_model = RRBasketballShoes
-
-    lockdown = scrapy.Field()
-
-
-class RunRepeatFootballShoes(RunRepeatItem):
-    elastic_model = RRFootballShoes
-
-    surface = scrapy.Field()
-    lacing = scrapy.Field()
-
-
-class RunRepeatTrainingShoes(RunRepeatItem):
-    elastic_model = RRTrainingShoes
-
-    use = scrapy.Field()
-    htt_drop = scrapy.Field()
-    arch_support = scrapy.Field()
-

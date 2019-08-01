@@ -42,9 +42,10 @@ class KicksScraperPipeline:
             self._items = {}
             return items
 
-    def __init__(self, conn=None, buffer_size=200):
+    def __init__(self, conn=None, buffer_size=200, bulk=bulk):
         if conn is not None:
             self.conn = conn
+        self.bulk = bulk
         self.default_buffer_size = buffer_size
         self.buffers = {}
 
@@ -64,7 +65,7 @@ class KicksScraperPipeline:
 
     def _write(self, items_batch):
         updates = (item.get_bulk_update_dict() for item in items_batch)
-        return bulk(self.conn, updates)
+        return self.bulk(self.conn, updates)
 
     def process_item(self, item, spider):
         buffer = self.get_buffer(spider)
