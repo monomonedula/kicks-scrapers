@@ -1,5 +1,5 @@
 import json
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Union
 
 import scrapy
 
@@ -11,7 +11,7 @@ def total_items_num(response):
     return data['aggregations']['stats']['total_count_any_size']
 
 
-def rr_requests(urls: Iterable['PaginatingJsonURL'], callback: Callable):
+def rr_requests(urls: Iterable['PaginatingJsonURL'], callback: Union[None, Callable]):
     for p_url in urls:
         yield scrapy.Request(url=p_url.url(),
                              callback=callback)

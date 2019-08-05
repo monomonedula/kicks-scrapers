@@ -68,12 +68,12 @@ class KicksScraperPipeline:
         return self.bulk(self.conn, updates)
 
     def process_item(self, item, spider):
-        buffer = self.get_buffer(spider)
-        buffer.add(item)
+        buffer = self._get_buffer(spider)
+        buffer.add(item.to_elastic())
         if buffer.is_full():
             self.write_from_buffer(spider)
 
-    def get_buffer(self, spider):
+    def _get_buffer(self, spider):
         if spider.name not in self.buffers:
             size = getattr(spider, 'buffer_size', self.default_buffer_size)
             buff = self.ItemsBuffer(size)
@@ -86,13 +86,13 @@ class KicksScraperPipeline:
                 self.write_from_buffer(buffer)
 
 
-class RunRepeatSesionedPipeline(KicksScraperPipeline):
+class SessionedKicksScraperPipeline(KicksScraperPipeline):
     def write_from_buffer(self, spider):
-        buff_size = self.get_buffer_size(spider)
+        buff_size = self._buffer_size(spider)
         # logger.info(f'Writing batch to elasticsearch. Batch size: {buff_size}')
         result = super().write_from_buffer(spider)
         spider.session.update_status(buff_size)
         return result
 
-    def get_buffer_size(self, spider):
+    def _buffer_size(self, spider):
         return len(self.buffers[spider.name])
