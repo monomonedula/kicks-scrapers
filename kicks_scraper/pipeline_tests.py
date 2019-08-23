@@ -2,7 +2,7 @@ import pytest
 
 from .pipelines import KicksScraperPipeline, SessionedKicksScraperPipeline,\
     EmptyBufferWriteException, BufferOverflowException
-from .spiders.runrepeat_tests import random_strings_gen
+from test_utils.utils import random_strings_gen
 
 
 class ConnectionMock:

@@ -1,11 +1,11 @@
 import json
 import random
-import string
 from time import time
 
 import pytest
 from scrapy import Request
 
+from test_utils.utils import random_strings_gen, random_string
 from .runrepeat import total_items_num, rr_requests, limited_urls, \
     PaginatingJsonURL
 
@@ -41,19 +41,6 @@ def test_total_items_num_fail_dict():
 def test_total_items_num_fail_response(obj):
     with pytest.raises(AttributeError):
         total_items_num(obj)
-
-
-def random_strings_gen(amount, rand=None):
-    rand = rand or random.Random()
-    for i in range(amount):
-        yield random_string(rand.randint(0, 200), rand)
-
-
-def random_string(string_length=10, rand=None):
-    """Generate a random string of fixed length """
-    rand = rand or random.Random()
-    letters = string.ascii_lowercase
-    return ''.join(rand.choice(letters) for i in range(string_length))
 
 
 def random_urls_gen(amount, rand=None):

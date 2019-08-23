@@ -19,7 +19,7 @@ class KicksScraperItem(scrapy.Item):
         d = self.copy()
         del d['id']
         item = SneakerItem(**d)
-        item.meta.id = self.id
+        item.meta.id = self['id']
         return item
 
 
@@ -35,7 +35,7 @@ class RunRepeatItem(scrapy.Item):
     categories = scrapy.Field()
 
     @classmethod
-    def from_dict(cls, data: dict, use_users_score=False):
+    def from_runrepeat_json_dict(cls, data: dict, use_users_score=False):
         item = cls(id=data['slug'],
                    name=data['brand']['name'],
                    brand_slug=data['brand']['slug'],
@@ -51,5 +51,5 @@ class RunRepeatItem(scrapy.Item):
         d = self.copy()
         del d['id']
         item = self.elastic_model(**d)
-        item.meta.id = self.id
+        item.meta.id = self['id']
         return item

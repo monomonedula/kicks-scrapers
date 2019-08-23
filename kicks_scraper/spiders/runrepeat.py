@@ -125,5 +125,5 @@ class RRSpider(scrapy.Spider):
     def parse_json(response):
         data = json.loads(response.text)
         for item in data:
-            yield RunRepeatItem.from_dict(item,
-                                          use_users_score=False)
+            yield RunRepeatItem.from_runrepeat_json_dict(item,
+                                                         use_users_score=False)
