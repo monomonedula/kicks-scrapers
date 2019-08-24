@@ -5,6 +5,7 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import logging
+from functools import partial
 
 from elasticsearch.helpers import bulk
 
@@ -15,8 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class KicksScraperPipeline:
-    conn = es
-
     class ItemsBuffer:
         def __init__(self, max_size):
             self.max_size = max_size
@@ -42,9 +41,7 @@ class KicksScraperPipeline:
             self._items = {}
             return items
 
-    def __init__(self, conn=None, buffer_size=200, bulk=bulk):
-        if conn is not None:
-            self.conn = conn
+    def __init__(self, bulk, buffer_size=200):
         self.bulk = bulk
         self.default_buffer_size = buffer_size
         self.buffers = {}
@@ -52,7 +49,8 @@ class KicksScraperPipeline:
     @classmethod
     def from_crawler(cls, crawler):
         s = crawler.settings
-        return cls(buffer_size=s.getint('DB_BUFFER_SIZE', 200))
+        return cls(buffer_size=s.getint('DB_BUFFER_SIZE', 200),
+                   bulk=partial(bulk, es))
 
     def write_from_buffer(self, spider):
         buffer = self.buffers[spider.name]
@@ -65,7 +63,7 @@ class KicksScraperPipeline:
 
     def _write(self, items_batch):
         updates = (item.get_bulk_update_dict() for item in items_batch)
-        return self.bulk(self.conn, updates)
+        return self.bulk(updates)
 
     def process_item(self, item, spider):
         buffer = self._get_buffer(spider)

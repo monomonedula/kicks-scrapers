@@ -41,7 +41,7 @@ class RunRepeatItem(scrapy.Item):
                    brand_slug=data['brand']['slug'],
                    views=data['views'],
                    score=data['score'],
-                   categories=data['categories'])
+                   categories=[c['slug'] for c in data['categories']])
 
         if use_users_score and item['score'] == 0:
             item['score'] = data['users_score']

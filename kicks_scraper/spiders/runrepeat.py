@@ -50,7 +50,7 @@ class RRSpider(scrapy.Spider):
         (
             'https://runrepeat.com/get-stats?from=0&size=30&orderBy'
             '=score&order=desc&r=1564742822404&filter%5B%5D=410&filte'
-            'r%5B%5D=6254&filter%5B%5D=3591&c_id=3&f_id=4'
+            'r%5B%5D=6254&filter%5B%5D=3591&c_id=3&f_id=4',
 
 
             'https://runrepeat.com/get-documents?'

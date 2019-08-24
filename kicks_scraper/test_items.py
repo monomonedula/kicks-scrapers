@@ -1,10 +1,6 @@
-import random
 from time import time
 
-import pytest
-
-from .items import KicksScraperItem, RunRepeatItem, \
-    SneakerItem, RRElastic
+from .items import KicksScraperItem, RunRepeatItem
 from test_utils.utils import Random
 
 
@@ -25,14 +21,15 @@ def test_kicks_scraper_item_to_elastic_fields():
 
 def make_kicks_scraper_item_data():
     rand = Random(time())
-    data = {'id': rand.randint(1, 100000),
+    url = rand.random_string(40)
+    data = {'id': url,
             'name': rand.random_string(40),
             'price': rand.randint(10, 200),
             'brand': rand.random_string(10),
             'sizes': list(rand.random_strings(10, 4)),
             'colorway': rand.random_string(10),
             'model': rand.random_string(10),
-            'url': rand.random_string(40),
+            'url': url,
             'img_url': rand.random_string(50)}
     fields = list(data.keys())
     fields.remove('id')
