@@ -6,7 +6,7 @@ import pytest
 from scrapy import Request
 
 from test_utils.utils import random_strings_gen, random_string
-from .runrepeat import total_items_num, rr_requests, limited_urls, \
+from kicks_scraper.spiders.runrepeat import total_items_num, rr_requests, limited_urls, \
     PaginatingJsonURL
 
 

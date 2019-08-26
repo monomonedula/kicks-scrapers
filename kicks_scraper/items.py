@@ -37,7 +37,8 @@ class RunRepeatItem(scrapy.Item):
     @classmethod
     def from_runrepeat_json_dict(cls, data: dict, use_users_score=False):
         item = cls(id=data['slug'],
-                   name=data['brand']['name'],
+                   name=data['name'],
+                   brand=data['brand']['name'],
                    brand_slug=data['brand']['slug'],
                    views=data['views'],
                    score=data['score'],

@@ -1,6 +1,6 @@
 import pytest
 
-from .pipelines import KicksScraperPipeline, SessionedKicksScraperPipeline,\
+from kicks_scraper.pipelines import KicksScraperPipeline, SessionedKicksScraperPipeline,\
     EmptyBufferWriteException, BufferOverflowException
 from test_utils.utils import random_strings_gen
 
@@ -135,7 +135,7 @@ def get_filled_buffer_with_ids(ids):
 def test_pipeline_process_item(items_number, buff_size):
     written_items = []
 
-    def bulk_mock(connection, items):
+    def bulk_mock(items):
         written_items.extend(items)
 
     pipeline, items = prepare_pipeline(items_number, buff_size, bulk_mock)
@@ -147,7 +147,7 @@ def test_pipeline_process_item(items_number, buff_size):
 def prepare_pipeline(items_number, buff_size, bulk_mock):
     items = n_items(items_number)
     spider = SpiderMock('some_spider')
-    pipeline = KicksScraperPipeline(ConnectionMock(), buff_size, bulk_mock)
+    pipeline = KicksScraperPipeline(bulk_mock, buff_size)
     for item in items:
         pipeline.process_item(item, spider)
     return pipeline, items

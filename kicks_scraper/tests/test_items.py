@@ -1,7 +1,29 @@
 from time import time
 
-from .items import KicksScraperItem, RunRepeatItem
+import pytest
+
+from kicks_scraper.items import KicksScraperItem, RunRepeatItem
 from test_utils.utils import Random
+
+
+def json_rr_dict():
+    import os
+    import json
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    path = os.path.join(this_dir, 'item_example.json')
+    with open(path) as f:
+        return (
+            json.loads(f.read()),
+            {
+                'name': 'Jordan Heritage',
+                'score': 98.812,
+                'id': 'jordan-heritage',
+                'brand': 'Jordan',
+                'brand_slug': 'jordan',
+                'views': 30,
+                'categories': ['sneakers']
+            }
+        )
 
 
 def test_kicks_scraper_item_to_elastic_id():
@@ -17,6 +39,47 @@ def test_kicks_scraper_item_to_elastic_fields():
         (getattr(elastic_item, field) == data_dict[field]
          for field in elastic_fields)
     )
+
+
+def test_runrepeat_item_from_json_dict():
+    data, expected = json_rr_dict()
+    item = RunRepeatItem.from_runrepeat_json_dict(data)
+    assert all(
+        (item[field] == expected[field]
+         for field in expected)
+    )
+
+
+def test_runrepeat_item_to_elatic():
+    data, elastic_fields = make_rr_item_data()
+    elastic_item = RunRepeatItem(**data).to_elastic()
+    assert all(
+        (getattr(elastic_item, field) == data[field]
+         for field in elastic_fields)
+    )
+
+
+def test_runrepeat_item_to_elastic_id():
+    data, _ = make_rr_item_data()
+    elastic_item = RunRepeatItem(**data).to_elastic()
+    assert elastic_item.meta.id == data['id']
+
+
+def make_rr_item_data():
+    def random_string():
+        return rand.random_string(rand.randint(5, 40))
+
+    rand = Random(time())
+    data = dict(id=random_string(),
+                name=random_string(),
+                brand=random_string(),
+                brand_slug=random_string(),
+                views=random_string(),
+                score=float(rand.randint(0, 100)),
+                categories=[random_string() for _ in range(2)])
+    fields = list(data.keys())
+    fields.remove('id')
+    return data, fields
 
 
 def make_kicks_scraper_item_data():
