@@ -6,6 +6,10 @@ from kicks_scraper.items import KicksScraperItem, RunRepeatItem
 from test_utils.utils import Random
 
 
+# TODO: replace random generated values with constant ones for better
+#       test readability
+
+
 def json_rr_dict():
     import os
     import json
@@ -97,12 +101,6 @@ def make_kicks_scraper_item_data():
     fields = list(data.keys())
     fields.remove('id')
     return data, fields
-
-
-def test_runrepeat_item_to_elastic_id():
-    data, _ = make_runrepeat_item_data()
-    elastic_item = RunRepeatItem(**data).to_elastic()
-    assert elastic_item.meta.id == data['id']
 
 
 def test_runrepeat_item_to_elastic_fields():
