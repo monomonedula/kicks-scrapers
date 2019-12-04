@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import (Text, Document, Integer, Double, Keyword,
-                               Boolean, Float)
+                               Boolean, Float, Percolator, Q)
 
 client = Elasticsearch()
 
@@ -48,6 +48,8 @@ class SneakerItem(Document):
     last_update = Double()
 
     new = Boolean()
+    recommended = Boolean()
+    recommended_price_diff = Integer()
     new_sizes = Keyword(multi=True)
     price_change = Integer()
 
@@ -106,3 +108,22 @@ class RunRepeatItem(Document):
         d['doc'] = d.pop('_source')
         d['doc_as_upsert'] = True
         return d
+
+
+class Recommendation(Document):
+    class Index:
+        name = 'test-percolator'
+
+    name = Text()
+    brand = Text()
+    model = Text()
+
+    query = Percolator()
+    recommended_price = Integer()
+
+
+# Recommendation(
+#     _id="1234",
+#     recommended_price=100,
+#     query=Q("query_string", "Adidas Gazelle", fields=["name", "brand", "model"])
+# )
