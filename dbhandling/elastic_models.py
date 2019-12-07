@@ -17,8 +17,6 @@ from elasticsearch_dsl import (
 
 client = Elasticsearch()
 
-index_name = "kicks"
-
 logger = logging.getLogger(__name__)
 
 this_directory_path = os.path.dirname(os.path.abspath(__file__))
@@ -51,8 +49,10 @@ class SneakerItem(Document):
     price_change = Integer()
 
     class Index:
-        name = index_name
+        name = "kicks"
         using = client
+
+    percolators_index = "recommendations"
 
     @property
     def descr(self):
@@ -78,9 +78,6 @@ class SneakerItem(Document):
             },
         }
 
-    def get_upd_dict(self):
-        pass
-
     def get_upsert_dict(self):
         return {**self.to_dict(), "new": True}
 
@@ -89,12 +86,12 @@ class SneakerItem(Document):
         #       consider implementing bulk percolation mechanism
         data = super().to_dict(include_meta, skip_empty)
         s = (
-            Search(index="test-percolator")
+            Search(index=self.percolators_index)
             .query(
                 "percolate",
                 field="query",
                 index=self._get_index(),
-                document=self.to_dict(),
+                document=super().to_dict(),
             )
             .extra(min_score=0.15)
         )
@@ -132,7 +129,7 @@ class RunRepeatItem(Document):
 
 class Recommendation(Document):
     class Index:
-        name = "test-percolator"
+        name = "recommendations"
 
     name = Text()
     brand = Text()
