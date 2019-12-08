@@ -14,24 +14,27 @@ class SizeerSpider(scrapy.Spider):
             'https://sklep.sizeer.com/meskie/buty?limit=120&page={page}',
             'https://sklep.sizeer.com/damskie/buty?limit=120&page={page}',
         ]:
-            meta = {"template": url, "page": 1}
             yield scrapy.Request(
                 url=url.format(page=1),
-                meta=meta
             )
 
     def parse(self, response):
-        # TODO: finish parse method
-        template = response.meta['template']
-        page = response.meta['page']
-        
+        for item in SizeerPage(response).items():
+            yield item.as_scraper_item()
+        yield scrapy.Request(
+            url=SizeerPage(response).next_page_url(),
+        )
+
 
 class SizeerPage:
-    def __init__(self):
-        pass
+    def __init__(self, response):
+        self._response = response
 
     def items(self) -> Iterable["SizeerItem"]:
         # TODO: implement items method
+        pass
+
+    def next_page_url(self) -> str:
         pass
 
 
