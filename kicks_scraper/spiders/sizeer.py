@@ -1,4 +1,7 @@
 import scrapy
+from typing import Iterable
+
+from kicks_scraper.items import KicksScraperItem
 
 
 class SizeerSpider(scrapy.Spider):
@@ -11,12 +14,31 @@ class SizeerSpider(scrapy.Spider):
             'https://sklep.sizeer.com/meskie/buty?limit=120&page={page}',
             'https://sklep.sizeer.com/damskie/buty?limit=120&page={page}',
         ]:
-            meta = {"template": url}
+            meta = {"template": url, "page": 1}
             yield scrapy.Request(
                 url=url.format(page=1),
                 meta=meta
             )
 
     def parse(self, response):
-        # TODO: implement parse
+        # TODO: finish parse method
+        template = response.meta['template']
+        page = response.meta['page']
+        
+
+class SizeerPage:
+    def __init__(self):
+        pass
+
+    def items(self) -> Iterable["SizeerItem"]:
+        # TODO: implement items method
+        pass
+
+
+class SizeerItem:
+    def __init__(self, page):
+        self._page = page
+
+    def as_scraper_item(self) -> KicksScraperItem:
+        # TODO: implement as_scraper_item method
         pass
