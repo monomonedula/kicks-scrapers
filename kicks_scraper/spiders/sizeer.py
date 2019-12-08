@@ -24,7 +24,8 @@ class SizeerSpider(scrapy.Spider):
     def parse(self, response):
         for item in SizeerPage(response).items():
             yield item.as_scraper_item()
-        yield scrapy.Request(url=SizeerPage(response).next_page_url(),)
+        if SizeerPage(response).next_page_url():
+            yield scrapy.Request(url=SizeerPage(response).next_page_url())
 
 
 class SizeerPage:
@@ -36,7 +37,11 @@ class SizeerPage:
             yield SizeerItem(Selector(text=tag, type="xml"))
 
     def next_page_url(self) -> str:
-        pass
+        url = self._response.xpath(
+            "/html/body/section[1]/main/div/div/div[2]/form/div/div[3]/nav/a[2]/@href"
+        ).get()
+        if url:
+            return "http://sklep.sizeer.com" + url
 
 
 class SizeerItem:
